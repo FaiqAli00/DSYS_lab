@@ -1,0 +1,95 @@
+TcpMyServer1.java
+
+import java.io.*;
+import java.net.*;
+import java.lang.*;
+
+class TcpMyServer1 {
+    public static void main(String[] args) {
+        try {
+            String str1 = " ";
+            String str2 = " ";
+            ServerSocket ss = new ServerSocket(5678);  // Create ServerSocket on port 5678
+            System.out.println("Server Socket Created: " + ss);
+            
+            // Accept incoming client connection
+            Socket s = ss.accept();
+            System.out.println("Connection Created: " + s);
+            
+            BufferedReader br1, br2;
+            PrintWriter pw;
+            
+            // Set up input/output streams
+            br1 = new BufferedReader(new InputStreamReader(System.in));  // To read from server's console
+            br2 = new BufferedReader(new InputStreamReader(s.getInputStream()));  // To read from client
+            pw = new PrintWriter(s.getOutputStream(), true);  // To send data to client
+            
+            while (true) {
+                // Read and send data to client
+                System.out.println("Enter the data to send:");
+                str1 = br1.readLine();
+                pw.println(str1);
+                
+                // Receive and display data from client
+                str2 = br2.readLine();
+                System.out.println("The Received Data: " + str2);
+                
+                // Break if the client sends "bye"
+                if (str2.equals("bye"))
+                    break;
+            }
+        } catch (SocketException e) {
+            System.out.println(e);
+        } catch (IOException e) {
+            System.out.println(e);
+        }
+    }
+}
+
+
+// TcpMyClient1.java
+
+import java.io.*;
+import java.net.*;
+import java.lang.*;
+
+class TcpMyClient1 {
+    public static void main(String[] args) {
+        try {
+            String str1 = " ";
+            String str2 = " ";
+            BufferedReader br1, br2;
+            PrintWriter pw;
+            Socket s;
+            
+            // Get the local host IP address and create socket connection
+            InetAddress ia = InetAddress.getLocalHost();
+            s = new Socket(ia, 5678);  // Connect to server on port 5678
+            System.out.println("Socket Created: " + s);
+            
+            // Set up input/output streams
+            br1 = new BufferedReader(new InputStreamReader(System.in));  // To read from client console
+            br2 = new BufferedReader(new InputStreamReader(s.getInputStream()));  // To read from server
+            pw = new PrintWriter(s.getOutputStream(), true);  // To send data to server
+            
+            while (true) {
+                // Read and display data received from server
+                str1 = br2.readLine();
+                System.out.println("The Received Data: " + str1);
+                
+                // Break if server sends "bye"
+                if (str1.equals("bye"))
+                    break;
+                
+                // Read and send data to server
+                System.out.println("Enter the data to send:");
+                str2 = br1.readLine();
+                pw.println(str2);
+            }
+        } catch (SocketException e) {
+            System.out.println(e);
+        } catch (IOException e) {
+            System.out.println(e);
+        }
+    }
+}

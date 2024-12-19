@@ -1,0 +1,302 @@
+// bulletinserver.java
+
+import java.util.Properties;
+import java.util.Enumeration;
+import java.io.*;
+import java.net.*;
+import java.awt.*;
+
+public class BulletinServer {
+    ServerSocket server;
+    Socket connection;
+    DataOutputStream output;
+    DataInputStream input;
+    String s;
+    Properties clients, bulletin;
+    FileInputStream fcin = null, fbbin = null;
+    FileOutputStream fcout = null, fbbout = null;
+    Enumeration e;
+
+    public BulletinServer() {
+        try {
+            clients = new Properties();
+            bulletin = new Properties();
+            
+            try {
+                fcin = new FileInputStream("NameList.dat");
+                fbbin = new FileInputStream("bulletin.dat");
+                if (fcin != null) {
+                    clients.load(fcin);
+                    fcin.close();
+                }
+                if (fbbin != null) {
+                    bulletin.load(fbbin);
+                    fbbin.close();
+                }
+            } catch (IOException ex) {
+                ex.printStackTrace();
+            }
+            
+            server = new ServerSocket(5000, 100);
+            connection = server.accept();
+            System.out.println("Connection established");
+            output = new DataOutputStream(connection.getOutputStream());
+            input = new DataInputStream(connection.getInputStream());
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+    }
+
+    public void runServer() {
+        while (true) {
+            try {
+                s = input.readUTF();
+                
+                if (s.equals("connect")) {
+                    String s1 = input.readUTF();
+                    String s2 = input.readUTF();
+                    boolean bres = connect(s1, s2);
+                    if (bres) {
+                        output.writeUTF("valid user");
+                    } else {
+                        output.writeUTF("invalid user");
+                    }
+                }
+                
+                if (s.equals("showbulletinboard")) {
+                    String bulletinBoard = showBulletinBoard();
+                    output.writeUTF(bulletinBoard);
+                }
+                
+                if (s.equals("updatebuffer")) {
+                    String s1 = input.readUTF();
+                    String s2 = input.readUTF();
+                    boolean b = updateBuffer(s1, s2);
+                    if (b) {
+                        output.writeUTF("message appended");
+                    } else {
+                        output.writeUTF("Not able to write");
+                    }
+                }
+                
+                if (s.equals("close")) {
+                    System.exit(0);
+                }
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+        }
+    }
+
+    public boolean connect(String user, String pwd) {
+        String user1 = (String) clients.get(user);
+        String pwd1 = (String) clients.get(pwd);
+        return user1 != null && pwd1 != null;
+    }
+
+    public boolean updateBuffer(String name, String msg) {
+        bulletin.put(name, msg);
+        try {
+            fbbout = new FileOutputStream("bulletin.dat");
+            bulletin.store(fbbout, "Bulletin Board");
+            fbbout.close();
+        } catch (IOException ex) {
+            ex.printStackTrace();
+        }
+        return true;
+    }
+
+    public String showBulletinBoard() {
+        try {
+            fbbin = new FileInputStream("bulletin.dat");
+            bulletin.load(fbbin);
+            fbbin.close();
+        } catch (IOException ex) {
+            ex.printStackTrace();
+        }
+
+        Enumeration e = bulletin.keys();
+        String[] bulletinList = new String[bulletin.size()];
+        int i = 0;
+
+        while (e.hasMoreElements()) {
+            bulletinList[i++] = (String) e.nextElement();
+        }
+
+        StringBuffer sb = new StringBuffer();
+        for (i = 0; i < bulletinList.length; i++) {
+            sb.append("\n" + bulletinList[i] + ": " + bulletin.get(bulletinList[i]));
+        }
+        return sb.toString();
+    }
+
+    public boolean addHost(String id, String name) {
+        if (clients.get(name) != null) {
+            return false;
+        }
+        clients.put(name, id);
+        try {
+            fcout = new FileOutputStream("NameList.dat");
+            clients.store(fcout, "NameSpace");
+            fcout.close();
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+        return true;
+    }
+
+    public static void main(String args[]) {
+        int value;
+        String s1, s2;
+        BulletinServer bs = new BulletinServer();
+
+        try {
+            DataInputStream din = new DataInputStream(System.in);
+            System.out.println("Do you want to add a new host?");
+            System.out.println("Type 1 to add a host name");
+            System.out.println("To run a server, type 2");
+            String s = din.readLine();
+            value = Integer.parseInt(s);
+
+            while (value == 1) {
+                System.out.println("Enter user name:");
+                s1 = din.readLine();
+                System.out.println("Enter password:");
+                s2 = din.readLine();
+                boolean b = bs.addHost(s1, s2);
+                if (b) {
+                    System.out.println("Hostname is added");
+                } else {
+                    System.out.println("Hostname already exists");
+                }
+                System.out.println("Do you want to add a new host?");
+                System.out.println("Type 1 to add a Hostname");
+                s = din.readLine();
+                value = Integer.parseInt(s);
+            }
+
+            System.out.println("Server is running");
+            bs.runServer();
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
+}
+
+// bulletinclient.java
+
+import java.util.*;
+import java.io.*;
+import java.net.*;
+import java.awt.*;
+
+public class BulletinClient extends Frame {
+    TextArea display;
+    TextField t1, t2;
+    Label l1, l2;
+    Button send, show, connect, close;
+    Panel p1, p2;
+    Properties pc;
+    Socket client;
+    DataInputStream input;
+    DataOutputStream output;
+    String s;
+
+    public BulletinClient(String s1) {
+        super("Client");
+        pc = new Properties();
+        t1 = new TextField(20);
+        t2 = new TextField(20);
+        l1 = new Label("Enter username");
+        l2 = new Label("Enter password");
+        p2 = new Panel();
+        p2.add(l1);
+        p2.add(t1);
+        p2.add(l2);
+        p2.add(t2);
+
+        close = new Button("Close");
+        show = new Button("Bulletin Board");
+        send = new Button("Send Message");
+        connect = new Button("Login");
+
+        p1 = new Panel();
+        p1.add(connect);
+        p1.add(show);
+        p1.add(send);
+        p1.add(close);
+
+        display = new TextArea(20, 10);
+
+        add("Center", display);
+        add("South", p1);
+        add("North", p2);
+        setSize(600, 400);
+        setVisible(true);
+
+        try {
+            client = new Socket(s1, 5000);
+            display.append("Created socket\n");
+            display.append("\nType 2 at server side before running client\n");
+            input = new DataInputStream(client.getInputStream());
+            output = new DataOutputStream(client.getOutputStream());
+        } catch (IOException ex) {
+            ex.printStackTrace();
+        }
+    }
+
+    public boolean action(Event event, Object o) {
+        try {
+            if (event.target == connect) {
+                output.writeUTF("connect");
+                output.writeUTF(t1.getText());
+                output.writeUTF(t2.getText());
+                s = input.readUTF();
+                if (s.equals("valid user")) {
+                    l1.setText("Article Name:");
+                    l2.setText("Article Details:");
+                    t1.setText(" ");
+                    t2.setText(" ");
+                    display.appendText("\nConfirmation message: " + s);
+                } else {
+                    display.appendText("\nInvalid user");
+                }
+            }
+
+            if (event.target == send) {
+                if (s.equals("valid user")) {
+                    output.writeUTF("updatebuffer");
+                    output.writeUTF(t1.getText());
+                    output.writeUTF(t2.getText());
+                    String s1 = input.readUTF();
+                    display.setText("\n" + s1);
+                } else {
+                    display.setText("Invalid user... cannot post articles");
+                }
+            }
+
+            if (event.target == show) {
+                if (s.equals("valid user")) {
+                    output.writeUTF("showbulletinboard");
+                    display.setText(" ");
+                    String s = input.readUTF();
+                    display.setText("\n" + s);
+                } else {
+                    display.setText("Invalid user... cannot post articles");
+                }
+            }
+
+            if (event.target == close) {
+                output.writeUTF("close");
+                System.exit(0);
+            }
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+        return true;
+    }
+
+    public static void main(String args[]) {
+        BulletinClient bc = new BulletinClient(args[0]);
+    }
+}

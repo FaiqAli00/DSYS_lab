@@ -1,0 +1,67 @@
+// UDPServer.java
+
+import java.net.*;
+import java.io.*;
+
+public class UDPServer {
+    public static void main(String args[]) {
+        DatagramSocket server = null;
+        try {
+            server = new DatagramSocket(6789);
+            byte[] buffer = new byte[1000];
+            while (true) {
+                DatagramPacket request = new DatagramPacket(buffer, buffer.length);
+                server.receive(request);
+                DatagramPacket reply = new DatagramPacket(
+                    request.getData(),
+                    request.getLength(),
+                    request.getAddress(),
+                    request.getPort()
+                );
+                server.send(reply);
+            }
+        } catch (SocketException e) {
+            System.out.println("Socket: " + e.getMessage());
+        } catch (IOException e) {
+            System.out.println("IO: " + e.getMessage());
+        } finally {
+            if (server != null) {
+                server.close();
+            }
+        }
+    }
+}
+
+// UDPClient.java
+
+import java.net.*;
+import java.io.*;
+
+public class UDPClient {
+    public static void main(String args[]) {
+        DatagramSocket client = null;
+        try {
+            client = new DatagramSocket();
+            byte[] m = args[1].getBytes();
+            InetAddress host = InetAddress.getByName(args[0]);
+            int serverPort = 6789;
+            DatagramPacket request = new DatagramPacket(m, args[1].length(), host, serverPort);
+            client.send(request);
+            
+            byte[] buffer = new byte[1000];
+            DatagramPacket reply = new DatagramPacket(buffer, buffer.length);
+            client.receive(reply);
+            
+            String re = new String(reply.getData());
+            System.out.println("REPLY: " + re);
+        } catch (SocketException e) {
+            System.out.println("Socket: " + e.getMessage());
+        } catch (IOException e) {
+            System.out.println("IO: " + e.getMessage());
+        } finally {
+            if (client != null) {
+                client.close();
+            }
+        }
+    }
+}

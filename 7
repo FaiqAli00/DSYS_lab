@@ -1,0 +1,175 @@
+// Server.java
+
+import java.io.*;
+import java.net.*;
+import java.awt.*;
+
+public class Server extends Frame {
+    TextArea display;
+    Label l;
+    TextField t1;
+    Panel p1, p2;
+    Button b1, close;
+    ServerSocket server;
+    Socket connection;
+    DataOutputStream output;
+    DataInputStream input;
+    String s;
+
+    public Server() {
+        super("Server");
+
+        // Initialize UI components
+        display = new TextArea(20, 5);
+        l = new Label("Enter text to send");
+        t1 = new TextField(20);
+        p1 = new Panel();
+        p2 = new Panel();
+        b1 = new Button("Send");
+        close = new Button("Close");
+
+        // Add components to panels
+        p2.add(b1);
+        p2.add(close);
+        p1.add(l);
+        p1.add(t1);
+
+        // Add components to frame
+        add("Center", display);
+        add("North", p1);
+        add("South", p2);
+        resize(300, 150);
+        show();
+
+        try {
+            // Set up server socket
+            server = new ServerSocket(5000, 100);
+            connection = server.accept();
+            display.setText("Connection received...\n");
+            output = new DataOutputStream(connection.getOutputStream());
+            input = new DataInputStream(connection.getInputStream());
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+    }
+
+    public boolean action(Event e, Object o) {
+        try {
+            if (e.target == b1) {
+                s = t1.getText();
+                display.appendText("\nData sent:\n" + s);
+                output.writeUTF(s);
+            }
+            if (e.target == close) {
+                display.appendText("Transmission complete. Closing socket\n");
+                connection.close();
+                System.exit(0);
+            }
+        } catch (IOException ex) {
+            ex.printStackTrace();
+        }
+        return true;
+    }
+
+    public void runServer() {
+        while (true) {
+            try {
+                s = input.readUTF();
+                display.appendText("\nFrom client:\n" + s);
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+        }
+    }
+
+    public static void main(String args[]) {
+        Server s = new Server();
+        s.runServer();
+    }
+}
+
+
+// Client.java
+
+import java.io.*;
+import java.net.*;
+import java.awt.*;
+
+public class Client extends Frame {
+    TextArea display;
+    TextField t1;
+    Label l1;
+    Button close, send;
+    Panel p1, p2;
+    String s;
+    Socket client;
+    DataOutputStream output;
+    DataInputStream input;
+
+    public Client() {
+        super("Client");
+
+        // Initialize UI components
+        t1 = new TextField(20);
+        l1 = new Label("Enter Text");
+        p2 = new Panel();
+        p2.add(l1);
+        p2.add(t1);
+        close = new Button("Close");
+        send = new Button("Send");
+        p1 = new Panel();
+        p1.add(send);
+        p2.add(close);
+        display = new TextArea(20, 10);
+
+        // Add components to frame
+        add("Center", display);
+        add("South", p1);
+        add("North", p2);
+        resize(300, 150);
+        show();
+
+        try {
+            // Set up client socket
+            client = new Socket(InetAddress.getLocalHost(), 5000);
+            display.appendText("Created socket\n");
+            input = new DataInputStream(client.getInputStream());
+            output = new DataOutputStream(client.getOutputStream());
+        } catch (IOException ex) {
+            ex.printStackTrace();
+        }
+    }
+
+    public boolean action(Event event, Object o) {
+        try {
+            if (event.target == close) {
+                client.close();
+                System.exit(0);
+            }
+            if (event.target == send) {
+                s = t1.getText();
+                output.writeUTF(s);
+                display.appendText("\nMessage sent: " + s);
+            }
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+        return true;
+    }
+
+    public void runClient() {
+        while (true) {
+            try {
+                s = input.readUTF();
+                display.appendText("\nFrom Server: " + s);
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+        }
+    }
+
+    public static void main(String args[]) {
+        Client c = new Client();
+        c.runClient();
+    }
+}

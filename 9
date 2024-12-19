@@ -1,0 +1,99 @@
+// MyServer.java
+
+
+import java.io.*;
+import java.net.*;
+import java.lang.*;
+
+class MyServer {
+    public static void main(String[] args) {
+        try {
+            String str1, str2;
+            DatagramSocket ds;  // Create DatagramSocket for server
+            DatagramPacket dp1, dp2;  // Datagram packets for sending/receiving data
+            InetAddress ia;  // IP address of the client
+            byte[] data1 = new byte[1024], data2 = new byte[1024];  // Data buffers
+            BufferedReader br1;  // To read from server's console
+
+            ds = new DatagramSocket(1500);  // Create socket on port 1500
+            ia = InetAddress.getLocalHost();  // Get localhost address
+            br1 = new BufferedReader(new InputStreamReader(System.in));  // Create input stream to read from console
+
+            while (true) {
+                // Server reads input from console and sends to client
+                System.out.println("Enter the data to send:");
+                str1 = br1.readLine();  // Read user input
+                data1 = str1.getBytes();  // Convert input to bytes
+                dp1 = new DatagramPacket(data1, data1.length, ia, 1700);  // Create DatagramPacket
+                ds.send(dp1);  // Send packet to client
+
+                if (str1.equals("bye"))  // Break the loop if "bye" is entered
+                    break;
+
+                // Server receives data from client
+                dp2 = new DatagramPacket(data2, data2.length);  // Create empty packet to receive data
+                ds.receive(dp2);  // Receive packet
+                str2 = new String(dp2.getData(), 0, dp2.getLength());  // Convert data to string
+                System.out.println("The Received Data: " + str2);
+
+                if (str2.equals("bye"))  // Break the loop if client sends "bye"
+                    break;
+            }
+        } catch (BindException e) {
+            System.out.println(e);
+        } catch (SocketException e) {
+            System.out.println(e);
+        } catch (IOException e) {
+            System.out.println(e);
+        }
+    }
+}
+
+
+// MyClient.java
+
+
+import java.io.*;
+import java.net.*;
+
+class MyClient {
+    public static void main(String[] args) {
+        String str1, str2;
+        DatagramSocket ds;  // DatagramSocket for client
+        DatagramPacket dp1, dp2;  // Datagram packets for sending/receiving data
+        InetAddress ia;  // IP address of the server
+        byte[] data1 = new byte[1024], data2 = new byte[1024];  // Data buffers
+        BufferedReader br;  // To read input from client console
+
+        try {
+            ds = new DatagramSocket(1700);  // Create socket on port 1700
+            ia = InetAddress.getLocalHost();  // Get localhost address
+            br = new BufferedReader(new InputStreamReader(System.in));  // Create input stream for console
+
+            while (true) {
+                // Client receives data from server
+                dp1 = new DatagramPacket(data1, data1.length);  // Create empty packet to receive data
+                ds.receive(dp1);  // Receive packet
+                str1 = new String(dp1.getData(), 0, dp1.getLength());  // Convert data to string
+                System.out.println("Length is " + dp1.getLength());
+                System.out.println("The Received Data: " + str1);
+
+                if (str1.equals("bye"))  // Exit if server sends "bye"
+                    break;
+
+                // Client sends data to server
+                System.out.println("Enter the data to send:");
+                str2 = br.readLine();  // Read input from client
+                data2 = str2.getBytes();  // Convert input to bytes
+                dp1 = new DatagramPacket(data2, data2.length, ia, 1500);  // Create packet for sending
+                ds.send(dp1);  // Send packet to server
+            }
+        } catch (BindException e) {
+            System.out.println(e);
+        } catch (SocketException e) {
+            System.out.println(e);
+        } catch (IOException e) {
+            System.out.println(e);
+        }
+    }
+}

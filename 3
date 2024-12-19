@@ -1,0 +1,162 @@
+**Program 3: Implement a Chat Server using Java**
+
+**Server Code:**
+```java
+import javax.swing.*;
+import javax.swing.border.*;
+import java.awt.*;
+import java.awt.event.*;
+import java.net.*;
+import java.io.*;
+
+public class ServerChat extends JFrame implements ActionListener {
+    JButton send;
+    JTextArea area;
+    JTextField text;
+    ServerSocket server;
+    Socket client;
+    DataInputStream din;
+    PrintWriter pw;
+
+    public ServerChat() {
+        super("Server Window");
+        send = new JButton("SEND");
+        area = new JTextArea(20, 20);
+        text = new JTextField(20);
+
+        JPanel panel = new JPanel();
+        panel.add(new JLabel("Enter Your Text: "));
+        panel.add(text);
+        panel.add(send);
+        panel.setBorder(new LineBorder(Color.RED, 2, true));
+
+        add(panel, BorderLayout.SOUTH);
+        add(new JScrollPane(area), BorderLayout.CENTER);
+
+        area.setFont(new Font("TimesRoman", Font.PLAIN, 15));
+        area.setEditable(false);
+        setSize(500, 500);
+        setLocationRelativeTo(null);
+        setDefaultCloseOperation(EXIT_ON_CLOSE);
+        setVisible(true);
+
+        try {
+            server = new ServerSocket(7000);
+            area.setText("Server is waiting for a client...");
+            client = server.accept();
+            area.append("\nClient is now connected.");
+            pw = new PrintWriter(client.getOutputStream(), true);
+            din = new DataInputStream(client.getInputStream());
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+
+        new Thread(this::receive).start();
+    }
+
+    public void receive() {
+        try {
+            String message;
+            while ((message = din.readLine()) != null) {
+                area.append("\nClient: " + message);
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
+
+    @Override
+    public void actionPerformed(ActionEvent ae) {
+        String message = text.getText();
+        area.append("\nServer: " + message);
+        pw.println(message);
+        text.setText("");
+    }
+
+    public static void main(String[] args) {
+        new ServerChat();
+    }
+}
+```
+
+**Client Code:**
+```java
+import javax.swing.*;
+import javax.swing.border.*;
+import java.awt.*;
+import java.awt.event.*;
+import java.net.*;
+import java.io.*;
+
+public class ClientChat extends JFrame implements ActionListener {
+    JButton send;
+    JTextArea area;
+    JTextField text;
+    Socket client;
+    DataInputStream din;
+    PrintWriter pw;
+
+    public ClientChat() {
+        super("Client Window");
+        send = new JButton("SEND");
+        area = new JTextArea(20, 20);
+        text = new JTextField(20);
+
+        JPanel panel = new JPanel();
+        panel.add(new JLabel("Enter Your Text: "));
+        panel.add(text);
+        panel.add(send);
+        panel.setBorder(new LineBorder(Color.BLUE, 2, true));
+
+        add(panel, BorderLayout.SOUTH);
+        add(new JScrollPane(area), BorderLayout.CENTER);
+
+        area.setFont(new Font("TimesRoman", Font.PLAIN, 15));
+        area.setEditable(false);
+        setSize(500, 500);
+        setLocationRelativeTo(null);
+        setDefaultCloseOperation(EXIT_ON_CLOSE);
+        setVisible(true);
+
+        try {
+            client = new Socket("localhost", 7000);
+            pw = new PrintWriter(client.getOutputStream(), true);
+            din = new DataInputStream(client.getInputStream());
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+
+        new Thread(this::receive).start();
+    }
+
+    public void receive() {
+        try {
+            String message;
+            while ((message = din.readLine()) != null) {
+                area.append("\nServer: " + message);
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
+
+    @Override
+    public void actionPerformed(ActionEvent ae) {
+        String message = text.getText();
+        area.append("\nClient: " + message);
+        pw.println(message);
+        text.setText("");
+    }
+
+    public static void main(String[] args) {
+        new ClientChat();
+    }
+}
+```
+
+**Execution Steps:**
+1. Write the server and client programs in separate files.
+2. Run the server program first to start listening on port 7000.
+3. Run the client program to establish a connection.
+4. Messages can be exchanged between the client and server through their respective GUIs.
+
